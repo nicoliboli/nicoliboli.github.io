@@ -144,9 +144,13 @@ Nmap done: 1 IP address (1 host up) scanned in 69.70 seconds
 
 ## port 3389 - rdp
 
-tried hydra, but wasn't getting a promising result, so just tried well-known Windows user accounts and got it on the first try.
+tried hydra, but wasn't getting a promising result. 
 
 ![hydra_error](/assets/img/hydra_error.png)
+
+# exploitation
+
+instead i thought to try well-known Windows user accounts and got it on the first try.
 
 ```
 $ xfreerdp /u:Administrator /v:10.129.182.134
