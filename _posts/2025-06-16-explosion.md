@@ -6,6 +6,7 @@ tags:
 - htb
 - starting_point
 - explosion
+- xfreerdp
 author: nicoliboli
 description: starting point | tier 0 | box 4
 date: '2025-06-16 13:37:35 -0400'

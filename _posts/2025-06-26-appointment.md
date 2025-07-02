@@ -6,6 +6,7 @@ tags:
 - htb
 - starting_point
 - appointment
+- sqli
 author: nicoliboli
 description: starting point | tier 1 | box 0
 date: '2025-06-26 17:37:30 -0400'

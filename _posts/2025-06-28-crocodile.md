@@ -6,6 +6,7 @@ tags:
 - htb
 - starting_point
 - crocodile
+- ftp
 author: nicoliboli
 description: starting point | tier 1 | box 2
 date: '2025-06-28 21:24:17 -0400'
