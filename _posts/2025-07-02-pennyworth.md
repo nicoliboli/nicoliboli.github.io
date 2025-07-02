@@ -9,8 +9,8 @@ tags:
 - jenkins
 author: nicoliboli
 description: starting point | tier 1 | box 8
+date: '2025-07-02 11:57:35 -0400'
 ---
-
 # enumeration
 
 ```
