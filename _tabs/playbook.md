@@ -4,7 +4,11 @@ icon: fas fa-info-circle
 order: 4
 ---
 
-# enumeartion
+# enum
+
+## mssql
+
+- [link](https://pentestmonkey.net/cheat-sheet/sql-injection/mssql-sql-injection-cheat-sheet)
 
 ## smb
 
@@ -120,6 +124,60 @@ hydra -l [username] -P [path_to_passwd_list] -t 10 http-post-form [domain] "/URI
 
 # c2
 
+## havoc
+
+### installation
+
+installing dependencies proved to be a pain. i got the following error
+
+```
+...
+Err:1 http://http.kali.org/kali kali-rolling/main amd64 libqt5webkit5 amd64 5.212.0~alpha4-41
+  404  Not Found [IP: 54.39.128.230 80]
+Error: Failed to fetch http://http.kali.org/kali/pool/main/q/qtwebkit-opensource-src/libqt5webkit5_5.212.0%7ealpha4-41_amd64.deb  404  Not Found [IP: 54.39.128.230 80]
+Error: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing                                                                                        
+```
+
+turns out this repo was removed from kali because it was outdated/insecure. tried to install what they recommended, but no dice. so found the package and tried to install it manually from [here](https://salsa.debian.org/qt-kde-team/qt/qt5webkit/-/tree/master/debian?ref_type=heads). never done this before so we shall see.
+
+```
+$ dh_make --file ~/Downloads/qt5webkit-master.tar.gz -p qt5webkit_5.12.0        
+Type of package: (single, indep, library, python)
+[s/i/l/p]?
+Maintainer Name     : unknown
+Email-Address       : kali@unknown
+Date                : Sat, 12 Jul 2025 00:20:44 -0400
+Package Name        : qt5webkit
+Version             : 5.12.0
+License             : blank
+Package Type        : single
+Are the details correct? [Y/n/q]
+Currently there is not top level Makefile. This may require additional tuning
+Done. Please edit the files in the debian/ subdirectory now.
+
+$ cat control                                                                
+Source: qt5webkit
+Section: libs
+Priority: optional
+Maintainer: unknown <kali@unknown>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+Standards-Version: 4.7.2
+#Vcs-Browser: https://salsa.debian.org/debian/qt5webkit
+#Vcs-Git: https://salsa.debian.org/debian/qt5webkit.git
+
+Package: qt5webkit
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Description: <insert up to 60 chars description>
+ <Insert long description, indented with spaces.>
+
+```
+
+i gave up and googled some more. turns out `qtcreator` installs. found info [here](https://askubuntu.com/questions/1404263/how-do-you-install-qt-on-ubuntu22-04) 
 ## metasploit
 
 ### generate payloads
